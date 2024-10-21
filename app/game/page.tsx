@@ -1,78 +1,77 @@
-"use client"
-import axios from "axios";
+"use client";
 import { useEffect, useState } from "react";
-import { Unocard } from "../components/Unocard";
-import Loading from "../components/Loading";
-export async function sendData() {
-    const arr = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-    let code = "";
-    for (let i = 0; i < 8; i++) {
-        code += arr[Math.floor(Math.random() * 1000) % arr.length];
-    }
-    let playerid = "";
-    for (let i = 0; i < 8; i++) {
-        if (i % 2 == 0) {
-            playerid += Math.floor(Math.random() * 10);
-        }
-        else {
-            playerid += arr[Math.floor(Math.random() * 1000) % arr.length];
-        }
-    }
-    return [code, playerid];
-}
+import Gamecard from "../components/Gamecard";
+import { useSearchParams } from "next/navigation";
+
 export default function Game() {
-    const [code, setCode] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [state, setState] = useState(["","","","","","","","",""]);
-    async function call() {
-        let val = await sendData();
-        let code = val[0];
-        let playerid = val[1];
-        let data = await axios.post('http://localhost:3000/api', {
-            code,
-            playerid
-        });
-        setCode(code);
-        setLoading(false);
+    const [connected, setConnected] = useState('Disconnected');
+    const [message, setMessage] = useState("");
+    const params = useSearchParams();
+    const [socket, setSocket] = useState<WebSocket | null>(null);
+    const [gamestate, setGamestate] = useState(['click', 'click', 'click', 'click', 'click', 'click', 'click', 'click', 'click']);
+    const bool = params.get('bool');
+    const mine = bool === 'true' ? '0' : 'X';
+    // Function to send an updated move to the WebSocket server
+    function makeMove(index: number) {
+        const newState = [...gamestate];
+        if (newState[index] === 'click') {
+            alert(mine);
+            newState[index] = mine;
+            sendMessage(JSON.stringify(newState));
+        }
     }
-    async function recall() {
-       try{
-        let res = await axios.post(`http://localhost:3000/api/perform`, {
-            code
-        });
-        setState(res.data.state);
-        console.log(state);
-       }
-       catch(err)
-       {
-        console.log("---------------------->"+err);
-       }
+
+    // Send a message through WebSocket
+    function sendMessage(msg: string) {
+        if (socket) {
+            socket.send(msg);
+        }
     }
+
     useEffect(() => {
-        let clr = setInterval(recall, 1000);
-        return () => clearInterval(clr);
-    }, [])
-    useEffect(() => {
-        call();
+        const newSocket = new WebSocket('ws://localhost:8080');
+
+        newSocket.onopen = () => {
+            console.log('Connection established');
+            setConnected('connected');
+        };
+
+        newSocket.onmessage = (message) => {
+            try {
+                const parsedData = JSON.parse(message.data);
+                if (Array.isArray(parsedData)) {
+                    setGamestate(parsedData);  // Update the game state from the server
+                }
+            } catch (error) {
+                console.log('Received non-JSON message:', message.data);
+                setMessage(message.data);
+            }
+        };
+
+        newSocket.onclose = () => {
+            alert("Connection closed!!");
+        };
+
+        setSocket(newSocket);
+
+        return () => {
+            newSocket.close()
+        };
     }, []);
+
     return (
         <div>
-            {loading ? <Loading /> :
+            {connected === 'connected' ? (
+                <p className="text-green-500">Connected</p>
+            ) : (
+                <p className="text-red-500">Disconnected</p>
+            )}
+
+            <div className="flex justify-center items-center h-screen">
                 <div>
-                    <div className="m-2 flex justify-between">
-                        <div>Uno</div>
-                        <div className="flex gap-2">
-                            <p>Code:</p>
-                            <div>{code}</div>
-                        </div>
-                    </div>
-                    <div className="flex justify-center items-center h-screen">
-                        <div>
-                            <Unocard state={state} code={code} val="X" />
-                        </div>
-                    </div>
+                    <Gamecard cb={makeMove} state={gamestate} char={'vasu'} />
                 </div>
-            }
+            </div>
         </div>
-    )
+    );
 }
