@@ -9,14 +9,12 @@ export default function Game() {
     const params = useSearchParams();
     const [socket, setSocket] = useState<WebSocket | null>(null);
     const [gamestate, setGamestate] = useState(['click', 'click', 'click', 'click', 'click', 'click', 'click', 'click', 'click']);
-    const bool = params.get('bool');
-    const mine = bool === 'true' ? '0' : 'X';
-    // Function to send an updated move to the WebSocket server
+    const bool:any = params.get('bool') === 'true';;
     function makeMove(index: number) {
         const newState = [...gamestate];
+        alert(bool);
         if (newState[index] === 'click') {
-            alert(mine);
-            newState[index] = mine;
+            newState[index] = bool?'X':'0';
             sendMessage(JSON.stringify(newState));
         }
     }
