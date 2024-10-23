@@ -12,14 +12,12 @@ export default function Game() {
     const bool:any = params.get('bool') === 'true';;
     function makeMove(index: number) {
         const newState = [...gamestate];
-        alert(bool);
         if (newState[index] === 'click') {
             newState[index] = bool?'X':'0';
             sendMessage(JSON.stringify(newState));
         }
     }
 
-    // Send a message through WebSocket
     function sendMessage(msg: string) {
         if (socket) {
             socket.send(msg);
@@ -38,7 +36,7 @@ export default function Game() {
             try {
                 const parsedData = JSON.parse(message.data);
                 if (Array.isArray(parsedData)) {
-                    setGamestate(parsedData);  // Update the game state from the server
+                    setGamestate(parsedData);  
                 }
             } catch (error) {
                 console.log('Received non-JSON message:', message.data);

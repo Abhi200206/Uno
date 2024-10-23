@@ -1,9 +1,7 @@
 export default function Gamecomp({ char, val, num, cb, state }: { char: any, val: any, num: any, cb: any, state: any }) {
-    // Function to handle the click event and update the state
     function handleClick() {
-        if (state[num] == 'click') {  // Only allow setting if the cell is empty
-            // Set the value (X or O)
-            cb(num);  // Call the callback to update the state and sync across tabs
+        if (state[num] == 'click') { 
+            cb(num);  
         }
     }
 
